@@ -1,15 +1,19 @@
-use_synth :piano
+use_synth :prophet
 
 s = nil
 
-live_loop :note_on do
-  note, velocity = sync "/midi:iac_driver_bus_1:1/note_on"
-  s = play 60, release: 5
+live_loop :on do
+  pitch, velocity = sync "/midi:js2sonicpi_2:1/note_on"
+  s = play 46,
+    sustain: 10.1
 end
 
-live_loop :note_off do
-  note, velocity = sync "/midi:iac_driver_bus_1:1/note_off"
+live_loop :off do
+  note, vel = sync "/midi:js2sonicpi_2:1/note_off"
+  puts note
   if s != nil
-    control s, sustain: 0, release: 0
+    control s, amp: 0, amp_slide: 1.3
+    sleep 0
+    kill s
   end
 end
