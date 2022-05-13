@@ -60,7 +60,7 @@
                     WebMidi.outputs.forEach((device, index) => {
                         //document.body.innerHTML += `${index}: ${device.name} <br>`;
                         console.log("device:", device.name)
-                        if (device.name === 'js2sonicpi') { //'IAC Driver Bus 1'
+                        if (device.name === 'IAC Driver Bus 1') { //'IAC Driver Bus 1'
                             midiDevice = device
                         }
                     })
@@ -78,42 +78,45 @@
             // Prediction #1: run input through posenet
             // estimatePose can take in an image, video or canvas html element
             const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-            // Prediction 2: run input through teachable machine classification model
-            const prediction = await model.predict(posenetOutput);
+        
+            if (pose) {
+                // Prediction 2: run input through teachable machine classification model
+                const prediction = await model.predict(posenetOutput);
 
-            let mostLikely = {
-                id: -1,
-                probability: 0
-            }
+                let mostLikely = {
+                    id: -1,
+                    probability: 0
+                }
 
-            for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction =
-                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-                labelContainer.childNodes[i].innerHTML = classPrediction;
+                for (let i = 0; i < maxPredictions; i++) {
+                    const classPrediction =
+                        prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                    labelContainer.childNodes[i].innerHTML = classPrediction;
 
-                if (mostLikely.probability < prediction[i].probability) {
-                    mostLikely = {
-                        id: i,
-                        probability: prediction[i].probability
+                    if (mostLikely.probability < prediction[i].probability) {
+                        mostLikely = {
+                            id: i,
+                            probability: prediction[i].probability
+                        }
                     }
                 }
+
+                // if (mostLikely.id === 0 && noteState === 0) {
+                // midiDevice.sendNoteOn(60, { rawAttack: 127, channels: 1 })
+                // noteState = 1
+                // }
+                // else if (mostLikely.id === 1 && noteState === 1) {
+                //     midiDevice.sendNoteOff(60, { channels: 1 })
+                //     noteState = 0
+                // }
+
+                // send MIDI CC based on nose position
+                // console.log(pose.keypoints[0].position.x)
+                midiDevice.sendControlChange(40,  Math.min(127,Math.max(0,Math.round(pose.keypoints[0].position.x/2))))
+
+                // finally draw the poses
+                drawPose(pose);
             }
-
-            // if (mostLikely.id === 0 && noteState === 0) {
-            // midiDevice.sendNoteOn(60, { rawAttack: 127, channels: 1 })
-            // noteState = 1
-            // }
-            // else if (mostLikely.id === 1 && noteState === 1) {
-            //     midiDevice.sendNoteOff(60, { channels: 1 })
-            //     noteState = 0
-            // }
-
-            // send MIDI CC based on nose position
-            // console.log(pose.keypoints[0].position.x)
-            midiDevice.sendControlChange(40,  Math.min(127,Math.max(0,Math.round(pose.keypoints[0].position.x/2))))
-
-            // finally draw the poses
-            drawPose(pose);
         }
 
         function drawPose(pose) {
